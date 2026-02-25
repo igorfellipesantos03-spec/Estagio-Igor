@@ -34,14 +34,14 @@ class AttendanceController extends Controller
             ->orderBy('data_inicio', 'asc')
             ->get();
 
-        // Presenças já enviadas pelo aluno
-        $presencasEnviadas = AttendanceRecord::where('user_id', $user->id)
-            ->pluck('hackathon_id')
-            ->toArray();
+        // Presenças já enviadas pelo aluno (agora retornamos a coleção em vez de apenas o ID)
+        $presencas = AttendanceRecord::where('user_id', $user->id)
+            ->get()
+            ->keyBy('hackathon_id');
 
         return view('attendance.aluno.create', [
             'hackathons' => $hackathons,
-            'presencasEnviadas' => $presencasEnviadas,
+            'presencas' => $presencas,
             'user' => $user,
         ]);
     }
@@ -57,9 +57,6 @@ class AttendanceController extends Controller
             'hackathon_id' => [
                 'required',
                 'exists:hackathons,id',
-                Rule::unique('attendance_records')->where(function ($query) use ($user) {
-                    return $query->where('user_id', $user->id);
-                }),
             ],
             'photo' => [
                 'required',
@@ -90,15 +87,38 @@ class AttendanceController extends Controller
             return back()->withErrors(['hackathon_id' => 'Você não está participando deste hackathon.']);
         }
 
+        // Verificação manual de duplicidade considerando status
+        $existingRecord = AttendanceRecord::where('user_id', $user->id)
+            ->where('hackathon_id', $validated['hackathon_id'])
+            ->first();
+
+        if ($existingRecord) {
+            if ($existingRecord->status !== AttendanceStatus::REJECTED) {
+                return back()->withErrors(['hackathon_id' => 'Sua presença já está em análise ou foi aprovada.']);
+            }
+        }
+
         // Salva a foto em storage privado com nome hash
         $path = $request->file('photo')->store('attendance', 'local');
 
-        AttendanceRecord::create([
-            'user_id' => $user->id,
-            'hackathon_id' => $validated['hackathon_id'],
-            'photo_path' => $path,
-            'status' => AttendanceStatus::PENDING,
-        ]);
+        if ($existingRecord) {
+            // Se já existia e estava rejeitado, deleta a foto antiga do servidor e atualiza o registro
+            if ($existingRecord->photo_path && Storage::disk('local')->exists($existingRecord->photo_path)) {
+                Storage::disk('local')->delete($existingRecord->photo_path);
+            }
+            $existingRecord->update([
+                'photo_path' => $path,
+                'status' => AttendanceStatus::PENDING,
+                'admin_note' => null,
+            ]);
+        } else {
+            AttendanceRecord::create([
+                'user_id' => $user->id,
+                'hackathon_id' => $validated['hackathon_id'],
+                'photo_path' => $path,
+                'status' => AttendanceStatus::PENDING,
+            ]);
+        }
 
         return redirect()
             ->route('aluno.presenca.create')

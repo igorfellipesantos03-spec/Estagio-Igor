@@ -63,7 +63,7 @@ class GrupoController extends Controller
 
         $grupo->membros()->attach($user->id);
 
-        return redirect()->route('aluno.hackathons.index')->with('success', 'Grupo criado com sucesso! Código: ' . $grupo->codigo);
+        return redirect()->route('aluno.hackathons.index')->with('success', 'Grupo criado! Agora você já está inscrito neste Hackathon. (Código do seu grupo: ' . $grupo->codigo . ')');
     }
 
     /**
@@ -114,7 +114,7 @@ class GrupoController extends Controller
 
         $grupo->membros()->attach($user->id);
 
-        return redirect()->route('aluno.hackathons.index')->with('success', 'Você entrou no grupo "' . $grupo->nome . '" do hackathon "' . $grupo->hackathon->nome . '"!');
+        return redirect()->route('aluno.hackathons.index')->with('success', 'Você entrou no grupo "' . $grupo->nome . '" com sucesso! Agora você está participando deste Hackathon.');
     }
 
     /**

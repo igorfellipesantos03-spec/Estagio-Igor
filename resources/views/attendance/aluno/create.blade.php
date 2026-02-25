@@ -68,16 +68,20 @@
                     >
                         <option value="">-- Escolha um hackathon --</option>
                         @forelse ($hackathons as $hackathon)
-                            @if (!in_array($hackathon->id, $presencasEnviadas))
+                            @php
+                                $registro = $presencas->get($hackathon->id);
+                                $podeEnviar = !$registro || $registro->status->value === 'rejected';
+                            @endphp
+                            @if ($podeEnviar)
                                 <option value="{{ $hackathon->id }}" {{ old('hackathon_id') == $hackathon->id ? 'selected' : '' }}>
-                                    {{ $hackathon->nome }}
+                                    {{ $hackathon->nome }} {{ $registro && $registro->status->value === 'rejected' ? '(Reenvio)' : '' }}
                                 </option>
                             @endif
                         @empty
                             <option value="" disabled>Nenhum hackathon disponível</option>
                         @endforelse
                     </select>
-                    @if (count($hackathons) > 0 && count($hackathons) === count($presencasEnviadas))
+                    @if (count($hackathons) > 0 && count($hackathons) === $presencas->whereIn('status.value', ['pending', 'approved'])->count())
                         <p class="mt-2 text-sm text-amber-600 flex items-center gap-1">
                             <i class="fas fa-info-circle"></i>
                             Você já enviou presença para todos os hackathons disponíveis.
@@ -185,7 +189,7 @@
                                     <p class="text-sm text-slate-400">Enviado em {{ $presenca->created_at->format('d/m/Y H:i') }}</p>
                                 </div>
                             </div>
-                            <div>
+                            <div class="text-right">
                                 @php
                                     $colors = [
                                         'pending' => 'bg-yellow-100 text-yellow-800',
@@ -193,9 +197,16 @@
                                         'rejected' => 'bg-red-100 text-red-800',
                                     ];
                                 @endphp
-                                <span class="px-3 py-1 rounded-full text-sm font-medium {{ $colors[$presenca->status->value] ?? 'bg-gray-100' }}">
-                                    {{ $presenca->status->label() }}
-                                </span>
+                                <div>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium {{ $colors[$presenca->status->value] ?? 'bg-gray-100' }}">
+                                        {{ $presenca->status->label() }}
+                                    </span>
+                                </div>
+                                @if($presenca->status->value === 'rejected' && $presenca->admin_note)
+                                    <p class="mt-2 text-xs text-red-600 max-w-xs ml-auto">
+                                        <span class="font-bold">Motivo:</span> {{ $presenca->admin_note }}
+                                    </p>
+                                @endif
                             </div>
                         </div>
                     @endforeach

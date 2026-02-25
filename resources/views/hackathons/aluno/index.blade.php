@@ -99,10 +99,13 @@
                                     <span>Inscrições Encerradas</span>
                                 </button>
                             @else
-                                <button onclick="openSubscribeModal({{ $hackathon }})" class="w-full mt-auto bg-principal hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow">
-                                    <span>Inscrever-se</span>
-                                    <i class="fas fa-arrow-right text-xs"></i>
-                                </button>
+                                <div class="mt-auto bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                                    <p class="text-[11px] text-amber-700 font-semibold mb-2">Você ainda não possui um grupo para este desafio!</p>
+                                    <button onclick="openSubscribeModal({{ $hackathon }})" class="w-full bg-principal hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow">
+                                        <i class="fas fa-users text-sm"></i>
+                                        <span>Criar ou Entrar em um Grupo</span>
+                                    </button>
+                                </div>
                             @endif
                         </div>
                     </div>
