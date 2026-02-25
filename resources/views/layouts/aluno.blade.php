@@ -163,12 +163,11 @@
             </a>
 
             <div class="pt-4 mt-4 border-t border-gray-700">
-                <a href="#" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl text-gray-400 hover:bg-sidebar-hover hover:text-white transition-all group cursor-not-allowed">
-                    <svg class="w-5 h-5 mr-3 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="{{ route('profile.edit') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl {{ request()->routeIs('profile.*') ? 'bg-primary/20 text-white border-l-4 border-primary' : 'text-gray-300 hover:bg-sidebar-hover hover:text-white' }} transition-all group">
+                    <svg class="w-5 h-5 mr-3 {{ request()->routeIs('profile.*') ? 'text-primary' : 'group-hover:text-primary' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <span>Meu Perfil</span>
-                    <span class="ml-auto text-[10px] bg-gray-700 px-2 py-0.5 rounded text-gray-400">Em breve</span>
                 </a>
             </div>
         </nav>

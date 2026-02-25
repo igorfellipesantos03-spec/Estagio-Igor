@@ -6,7 +6,6 @@ use App\Events\AnnouncementCreated;
 use App\Models\Hackathon;
 use App\Models\User;
 use App\Notifications\HackathonEndedNotification;
-use App\Notifications\WinnerNotification;
 use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -42,11 +41,9 @@ class HackathonController extends Controller
      */
     public function alunoIndex(): View
     {
-        // Hackathons ativos ou finalizados recentemente
-        $hackathons = Hackathon::where(function ($query) {
-                $query->where('data_fim', '>=', now())
-                      ->orWhere('status', 'finalized');
-            })
+        // Hackathons ativos (não finalizados) E que ainda não passaram da data de fim
+        $hackathons = Hackathon::where('data_fim', '>=', now())
+            ->where('status', '!=', 'finalized')
             ->with('winnerGroup')
             ->orderBy('data_inicio', 'asc')
             ->get();
@@ -74,15 +71,15 @@ class HackathonController extends Controller
         $hackathon = Hackathon::create($validatedData);
 
         // Dispara evento para distribuir anúncio a todos os alunos
-        AnnouncementCreated::dispatch(
+        event(new AnnouncementCreated(
             title: '🚀 Novo Hackathon: ' . $hackathon->nome,
-            body: 'O hackathon "' . $hackathon->nome . '" foi criado! Inscreva-se e forme seu grupo para participar.',
+            body: 'O Hackathon ' . $hackathon->nome . ' está aberto para inscrições!',
             icon: 'megaphone',
             type: 'info',
             category: 'general',
             actionUrl: route('aluno.hackathons.index'),
             expiresAt: $hackathon->data_fim
-        );
+        ));
 
         return redirect()->route('dashboard.professor')->with('success', 'Hackathon criado com sucesso!');
     }
@@ -133,17 +130,14 @@ class HackathonController extends Controller
                 );
             }
 
-            // 4. Enviar notificação de vitória para vencedores
-            Notification::send($winnerGroup->membros, new WinnerNotification($hackathon));
-
-            // 5. Buscar outros participantes (membros de todos os grupos do hackathon, exceto vencedores)
+            // 4. Buscar outros participantes (membros de todos os grupos do hackathon, exceto vencedores)
             $otherParticipants = User::whereHas('grupos', function ($query) use ($hackathon) {
                     $query->where('hackathon_id', $hackathon->id);
                 })
                 ->whereNotIn('id', $winnerUserIds)
                 ->get();
 
-            // 6. Dar 200 XP para os demais participantes
+            // 5. Dar 200 XP para os demais participantes
             foreach ($otherParticipants as $participant) {
                 $this->gamificationService->awardPoints(
                     $participant,
@@ -153,10 +147,16 @@ class HackathonController extends Controller
                 );
             }
 
-            // 7. Enviar notificação de encerramento para outros participantes
-            if ($otherParticipants->isNotEmpty()) {
-                Notification::send($otherParticipants, new HackathonEndedNotification($hackathon));
-            }
+            // 6. Enviar notificação Global de vitória para todos os usuários (Broadcast)
+            event(new AnnouncementCreated(
+                title: '🏆 Temos um Vencedor!',
+                body: 'O grupo "' . $winnerGroup->nome . '" foi o grande vencedor do hackathon "' . $hackathon->nome . '"!',
+                icon: 'trophy',
+                type: 'success',
+                category: 'general',
+                actionUrl: route('aluno.hackathons.index'),
+                expiresAt: now()->addDays(7)
+            ));
         });
 
         return redirect()->route('hackathons.index')

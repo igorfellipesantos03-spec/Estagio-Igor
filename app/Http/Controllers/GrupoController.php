@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Grupo;
 use App\Models\Hackathon;
 use App\Models\User;
+use App\Notifications\GroupMediaRemovedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -38,6 +40,18 @@ class GrupoController extends Controller
 
         if ($existingGroup) {
             return back()->withErrors(['msg' => 'Você já está em um grupo para este hackathon.']);
+        }
+
+        // Validate if inscriptions are still open (24 hours before start)
+        $hackathon = Hackathon::findOrFail($request->hackathon_id);
+        $inscricaoLimite = \Carbon\Carbon::parse($hackathon->data_inicio)->subDay();
+
+        if (now() > $inscricaoLimite) {
+            return back()->withErrors(['msg' => 'As inscrições para este hackathon já foram encerradas.']);
+        }
+
+        if ($hackathon->status === 'finalized') {
+            return back()->withErrors(['msg' => 'Este hackathon já foi finalizado.']);
         }
 
         $grupo = Grupo::create([
@@ -75,6 +89,18 @@ class GrupoController extends Controller
         // Verificar se o aluno já está neste grupo
         if ($grupo->membros->contains($user->id)) {
             return back()->withErrors(['codigo' => 'Você já é membro deste grupo.']);
+        }
+
+        // Validate if inscriptions are still open (24 hours before start)
+        $hackathon = $grupo->hackathon;
+        $inscricaoLimite = \Carbon\Carbon::parse($hackathon->data_inicio)->subDay();
+
+        if (now() > $inscricaoLimite) {
+            return back()->withErrors(['msg' => 'As inscrições para este hackathon já foram encerradas.']);
+        }
+
+        if ($hackathon->status === 'finalized') {
+            return back()->withErrors(['msg' => 'Este hackathon já foi finalizado.']);
         }
 
         // Verificar se o aluno já está em outro grupo para este hackathon
@@ -235,6 +261,11 @@ class GrupoController extends Controller
             Storage::disk('public')->delete($grupo->imagem);
             $grupo->imagem = null;
             $grupo->save();
+
+            // Notify the group leader
+            if ($grupo->lider) {
+                $grupo->lider->notify(new GroupMediaRemovedNotification($grupo));
+            }
 
             return back()->with('success', 'Imagem do grupo removida com sucesso.');
         }

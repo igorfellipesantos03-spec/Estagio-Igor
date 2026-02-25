@@ -48,13 +48,26 @@
                                     </span>
                                 @endif
 
-                                @if(now() < $hackathon->data_inicio)
+                                @php
+                                    $inscricaoLimite = \Carbon\Carbon::parse($hackathon->data_inicio)->subDay();
+                                    $isClosed = now() > $inscricaoLimite;
+                                @endphp
+
+                                @if($hackathon->status === 'finalized')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500 text-white shadow-sm">
+                                        <i class="fas fa-trophy mr-1"></i> Finalizado
+                                    </span>
+                                @elseif($isClosed && now() < $hackathon->data_inicio)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white shadow-sm">
+                                        Fechado para Inscrições
+                                    </span>
+                                @elseif(now() < $hackathon->data_inicio)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-400 text-white shadow-sm">
                                         Em Breve
                                     </span>
                                 @else
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-sm animate-pulse">
-                                        Aberto
+                                        Em Andamento
                                     </span>
                                 @endif
                             </div>
@@ -79,6 +92,11 @@
                                 <button disabled class="w-full mt-auto bg-green-100 text-green-700 font-semibold py-2.5 px-4 rounded-lg cursor-not-allowed flex items-center justify-center gap-2">
                                     <i class="fas fa-check-circle"></i>
                                     <span>Inscrito</span>
+                                </button>
+                            @elseif($hackathon->status === 'finalized' || $isClosed)
+                                <button disabled class="w-full mt-auto bg-gray-100 text-gray-400 font-semibold py-2.5 px-4 rounded-lg cursor-not-allowed flex items-center justify-center gap-2">
+                                    <i class="fas fa-lock text-xs"></i>
+                                    <span>Inscrições Encerradas</span>
                                 </button>
                             @else
                                 <button onclick="openSubscribeModal({{ $hackathon }})" class="w-full mt-auto bg-principal hover:bg-orange-600 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow">

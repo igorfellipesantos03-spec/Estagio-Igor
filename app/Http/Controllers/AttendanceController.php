@@ -24,8 +24,13 @@ class AttendanceController extends Controller
     {
         $user = Auth::user();
         
-        // Hackathons disponíveis (ativos)
-        $hackathons = Hackathon::where('data_fim', '>=', now())
+        // Hackathons disponíveis (ativos e o aluno deve estar participando)
+        $hackathons = Hackathon::where('data_inicio', '<=', now())
+            ->where('data_fim', '>=', now())
+            ->where('status', 'active')
+            ->whereHas('grupos.membros', function ($query) use ($user) {
+                $query->where('users.id', $user->id);
+            })
             ->orderBy('data_inicio', 'asc')
             ->get();
 
@@ -68,6 +73,22 @@ class AttendanceController extends Controller
             'photo.image' => 'O arquivo deve ser uma imagem.',
             'photo.max' => 'A imagem não pode ter mais de 5MB.',
         ]);
+
+        // Verificação extra de segurança: o hackathon está em andamento?
+        $hackathon = Hackathon::findOrFail($validated['hackathon_id']);
+        
+        if ($hackathon->status !== 'active' || now() < $hackathon->data_inicio || now() > $hackathon->data_fim) {
+            return back()->withErrors(['hackathon_id' => 'Não é possível validar presença neste hackathon (fora do período ou inativo).']);
+        }
+
+        // Verificação extra de segurança: o usuário participa do hackathon?
+        $participante = $hackathon->whereHas('grupos.membros', function ($query) use ($user) {
+            $query->where('users.id', $user->id);
+        })->where('id', $hackathon->id)->exists();
+
+        if (!$participante) {
+            return back()->withErrors(['hackathon_id' => 'Você não está participando deste hackathon.']);
+        }
 
         // Salva a foto em storage privado com nome hash
         $path = $request->file('photo')->store('attendance', 'local');

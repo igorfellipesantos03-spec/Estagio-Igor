@@ -4,11 +4,10 @@ namespace App\Listeners;
 
 use App\Events\AnnouncementCreated;
 use App\Models\User;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\GlobalAnnouncementNotification;
 
-class DistributeAnnouncement implements ShouldQueue
+class DistributeAnnouncement
 {
     /**
      * Handle the event.

@@ -20,6 +20,12 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('regi
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Rotas de Perfil (compartilhadas)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/perfil', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/perfil', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+});
+
 // Rotas de Notificações (compartilhadas - qualquer usuário autenticado)
 Route::middleware(['auth'])->prefix('api/notifications')->group(function () {
     Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');

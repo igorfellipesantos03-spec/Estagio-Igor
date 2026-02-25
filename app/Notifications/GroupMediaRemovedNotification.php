@@ -2,16 +2,16 @@
 
 namespace App\Notifications;
 
-use App\Models\Hackathon;
+use App\Models\Grupo;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class WinnerNotification extends Notification
+class GroupMediaRemovedNotification extends Notification
 {
     use Queueable;
 
     public function __construct(
-        private Hackathon $hackathon
+        private Grupo $grupo
     ) {}
 
     public function via(object $notifiable): array
@@ -22,13 +22,13 @@ class WinnerNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'title' => '🏆 Parabéns! Vocês venceram!',
-            'message' => 'Seu grupo foi o vencedor do hackathon "' . $this->hackathon->nome . '"! Vocês ganharam 1000 XP como premiação.',
+            'title' => 'Imagem do Grupo Removida',
+            'message' => 'Um professor removeu a imagem do seu grupo "' . $this->grupo->nome . '". Por favor, insira uma nova imagem caso desejado.',
             'category' => 'individual',
-            'level' => 'success',
-            'icon' => 'trophy',
+            'level' => 'warning',
+            'icon' => 'photograph',
             'action_url' => route('aluno.hackathons.index'),
-            'hackathon_id' => $this->hackathon->id,
+            'hackathon_id' => $this->grupo->hackathon_id,
         ];
     }
 }

@@ -190,7 +190,6 @@
                                         <span 
                                             :class="{
                                                 'bg-blue-100 text-blue-700': notification.category === 'general',
-                                                'bg-purple-100 text-purple-700': notification.category === 'leader',
                                                 'bg-green-100 text-green-700': notification.category === 'individual',
                                             }"
                                             class="text-[10px] px-2 py-0.5 rounded-full font-medium"
@@ -251,7 +250,6 @@ function notificationBell() {
         tabs: [
             { key: 'all', label: 'Tudo' },
             { key: 'general', label: 'Geral' },
-            { key: 'leader', label: 'Líder' },
             { key: 'individual', label: 'Pessoal' },
         ],
 
@@ -358,10 +356,9 @@ function notificationBell() {
         getCategoryLabel(category) {
             const labels = {
                 'general': 'Geral',
-                'leader': 'Líder',
                 'individual': 'Pessoal'
             };
-            return labels[category] || category;
+            return labels[category] || 'Pessoal'; // Fallback mapping older db records to Pessoal
         }
     }
 }
