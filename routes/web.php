@@ -64,6 +64,8 @@ Route::middleware(['auth', 'role:professor'])
         Route::get('/hackathons', [HackathonController::class, 'index'])->name('hackathons.index');
         Route::post('/hackathons', [HackathonController::class, 'store'])->name('hackathons.store');
         Route::put('/hackathons/{hackathon}', [HackathonController::class, 'update'])->name('hackathons.update');
+        Route::post('/hackathons/{hackathon}/finalize', [HackathonController::class, 'finalize'])->name('hackathons.finalize');
+        Route::delete('/hackathons/{hackathon}', [HackathonController::class, 'destroy'])->name('hackathons.destroy');
 
         // Rotas de Validação de Presença (Professor)
         Route::get('/presencas', [AttendanceController::class, 'hackathonList'])->name('professor.presenca.hackathons');

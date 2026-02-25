@@ -55,6 +55,22 @@ class GamificationEventsSeeder extends Seeder
                 'icon' => 'medal',
                 'description' => 'Terceiro lugar no hackathon.',
             ],
+
+            // Eventos de finalização
+            [
+                'key' => 'hackathon_winner',
+                'name' => 'Vencedor do Hackathon',
+                'points' => 1000,
+                'icon' => 'trophy',
+                'description' => 'Pontos por vencer o hackathon.',
+            ],
+            [
+                'key' => 'hackathon_participation',
+                'name' => 'Participação em Hackathon',
+                'points' => 200,
+                'icon' => 'star',
+                'description' => 'Pontos por participar de um hackathon finalizado.',
+            ],
         ];
 
         foreach ($events as $event) {

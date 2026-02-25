@@ -2,22 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Announcement;
+use App\Events\AnnouncementCreated;
 use App\Models\Hackathon;
+use App\Models\User;
+use App\Notifications\HackathonEndedNotification;
+use App\Notifications\WinnerNotification;
+use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 class HackathonController extends Controller
 {
+    public function __construct(
+        private GamificationService $gamificationService
+    ) {}
+
     /**
      * Lista hackathons para o professor.
      */
     public function index(): View
     {
-        $hackathons = Hackathon::latest()->get();
+        $hackathons = Hackathon::with('grupos', 'winnerGroup')
+            ->latest()
+            ->get();
         
         return view('hackathons.professor.index', [
             'hackathons' => $hackathons,
@@ -30,11 +42,14 @@ class HackathonController extends Controller
      */
     public function alunoIndex(): View
     {
-        // Hackathons ativos
-        $hackathons = Hackathon::where('data_fim', '>=', now())
-                                ->orderBy('data_inicio', 'asc')
-                                ->get();
-
+        // Hackathons ativos ou finalizados recentemente
+        $hackathons = Hackathon::where(function ($query) {
+                $query->where('data_fim', '>=', now())
+                      ->orWhere('status', 'finalized');
+            })
+            ->with('winnerGroup')
+            ->orderBy('data_inicio', 'asc')
+            ->get();
 
         return view('hackathons.aluno.index', [
             'hackathons' => $hackathons,
@@ -58,25 +73,102 @@ class HackathonController extends Controller
 
         $hackathon = Hackathon::create($validatedData);
 
-        // Criar anúncio global para todos os alunos
-        Announcement::create([
-            'title' => '🚀 Novo Hackathon: ' . $hackathon->nome,
-            'body' => 'O hackathon "' . $hackathon->nome . '" foi criado! Inscreva-se e forme seu grupo para participar.',
-            'icon' => 'megaphone',
-            'type' => 'info',
-            'category' => 'general',
-            'action_url' => route('aluno.hackathons.index'),
-            'expires_at' => $hackathon->data_fim,
-        ]);
+        // Dispara evento para distribuir anúncio a todos os alunos
+        AnnouncementCreated::dispatch(
+            title: '🚀 Novo Hackathon: ' . $hackathon->nome,
+            body: 'O hackathon "' . $hackathon->nome . '" foi criado! Inscreva-se e forme seu grupo para participar.',
+            icon: 'megaphone',
+            type: 'info',
+            category: 'general',
+            actionUrl: route('aluno.hackathons.index'),
+            expiresAt: $hackathon->data_fim
+        );
 
         return redirect()->route('dashboard.professor')->with('success', 'Hackathon criado com sucesso!');
+    }
+
+    /**
+     * Finalizar hackathon e premiar vencedor.
+     */
+    public function finalize(Request $request, Hackathon $hackathon): RedirectResponse
+    {
+        // Validação: winner_group_id é obrigatório
+        $validated = $request->validate([
+            'winner_group_id' => 'required|exists:grupos,id',
+        ], [
+            'winner_group_id.required' => 'Você deve selecionar o grupo vencedor.',
+            'winner_group_id.exists' => 'O grupo selecionado não existe.',
+        ]);
+
+        // Verificar se o grupo pertence a este hackathon
+        $winnerGroup = $hackathon->grupos()->where('id', $validated['winner_group_id'])->first();
+        
+        if (!$winnerGroup) {
+            return back()->withErrors(['winner_group_id' => 'O grupo selecionado não pertence a este hackathon.']);
+        }
+
+        // Verificar se já está finalizado
+        if ($hackathon->isFinalized()) {
+            return back()->withErrors(['hackathon' => 'Este hackathon já foi finalizado.']);
+        }
+
+        DB::transaction(function () use ($hackathon, $winnerGroup, $validated) {
+            // 1. Atualizar status do hackathon
+            $hackathon->update([
+                'status' => 'finalized',
+                'winner_group_id' => $validated['winner_group_id'],
+                'finalized_at' => now(),
+            ]);
+
+            // 2. Coletar IDs dos membros vencedores
+            $winnerUserIds = $winnerGroup->membros->pluck('id')->toArray();
+
+            // 3. Dar 1000 XP para os membros do grupo vencedor
+            foreach ($winnerGroup->membros as $member) {
+                $this->gamificationService->awardPoints(
+                    $member,
+                    'hackathon_winner',
+                    $hackathon,
+                    'Vencedor do hackathon: ' . $hackathon->nome
+                );
+            }
+
+            // 4. Enviar notificação de vitória para vencedores
+            Notification::send($winnerGroup->membros, new WinnerNotification($hackathon));
+
+            // 5. Buscar outros participantes (membros de todos os grupos do hackathon, exceto vencedores)
+            $otherParticipants = User::whereHas('grupos', function ($query) use ($hackathon) {
+                    $query->where('hackathon_id', $hackathon->id);
+                })
+                ->whereNotIn('id', $winnerUserIds)
+                ->get();
+
+            // 6. Dar 200 XP para os demais participantes
+            foreach ($otherParticipants as $participant) {
+                $this->gamificationService->awardPoints(
+                    $participant,
+                    'hackathon_participation',
+                    $hackathon,
+                    'Participação no hackathon: ' . $hackathon->nome
+                );
+            }
+
+            // 7. Enviar notificação de encerramento para outros participantes
+            if ($otherParticipants->isNotEmpty()) {
+                Notification::send($otherParticipants, new HackathonEndedNotification($hackathon));
+            }
+        });
+
+        return redirect()->route('hackathons.index')
+            ->with('success', 'Hackathon finalizado com sucesso! O grupo "' . $winnerGroup->nome . '" foi premiado como vencedor.');
     }
 
     // Métodos placeholders
     public function create() {}
     public function show(Hackathon $hackathon) {}
     public function edit(Hackathon $hackathon) {}
-    public function update(Request $request, Hackathon $hackathon)
+    
+    public function update(Request $request, Hackathon $hackathon): RedirectResponse
     {
         $validatedData = $request->validate([
             'nome' => 'required|string|max:255',
@@ -98,5 +190,25 @@ class HackathonController extends Controller
 
         return redirect()->route('dashboard.professor')->with('success', 'Hackathon atualizado com sucesso!');
     }
-    public function destroy(Hackathon $hackathon) {}
+
+    /**
+     * Excluir hackathon.
+     */
+    public function destroy(Hackathon $hackathon): RedirectResponse
+    {
+        // Verificar se tem grupos associados
+        if ($hackathon->grupos()->exists()) {
+            return back()->withErrors(['hackathon' => 'Não é possível excluir um hackathon com grupos inscritos.']);
+        }
+
+        // Remover banner se existir
+        if ($hackathon->banner && Storage::disk('public')->exists($hackathon->banner)) {
+            Storage::disk('public')->delete($hackathon->banner);
+        }
+
+        $hackathon->delete();
+
+        return redirect()->route('hackathons.index')
+            ->with('success', 'Hackathon excluído com sucesso!');
+    }
 }

@@ -28,6 +28,7 @@
                             <th class="px-6 py-4">Evento</th>
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Período</th>
+                            <th class="px-6 py-4">Grupos</th>
                             <th class="px-6 py-4 text-right">Ações</th>
                         </tr>
                     </thead>
@@ -52,7 +53,17 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                @if(now() < $hackathon->data_inicio)
+                                @if($hackathon->status === 'finalized')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        <i class="fas fa-trophy text-[10px] mr-1.5"></i>
+                                        Finalizado
+                                    </span>
+                                    @if($hackathon->winnerGroup)
+                                        <p class="text-xs text-slate-500 mt-1">
+                                            Vencedor: {{ $hackathon->winnerGroup->nome }}
+                                        </p>
+                                    @endif
+                                @elseif(now() < $hackathon->data_inicio)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         Em Breve
                                     </span>
@@ -73,13 +84,38 @@
                                     <p class="mt-1"><i class="fas fa-flag-checkered mr-1 text-gray-400"></i> {{ \Carbon\Carbon::parse($hackathon->data_fim)->format('d/m/Y H:i') }}</p>
                                 </div>
                             </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                                    <i class="fas fa-users text-[10px] mr-1.5"></i>
+                                    {{ $hackathon->grupos->count() }} grupos
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-right">
-                                <button onclick="openEditModal({{ $hackathon }})" class="text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50" title="Excluir">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
+                                <div class="flex items-center justify-end gap-1">
+                                    @if($hackathon->status !== 'finalized' && $hackathon->grupos->count() > 0)
+                                        <button onclick="openFinalizeModal({{ $hackathon->id }}, '{{ $hackathon->nome }}', {{ json_encode($hackathon->grupos->map(fn($g) => ['id' => $g->id, 'nome' => $g->nome])) }})" 
+                                                class="text-slate-400 hover:text-purple-600 transition-colors p-2 rounded-full hover:bg-purple-50" 
+                                                title="Finalizar Evento">
+                                            <i class="fas fa-trophy"></i>
+                                        </button>
+                                    @endif
+                                    <button onclick="openEditModal({{ $hackathon }})" class="text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    @if($hackathon->grupos->count() === 0)
+                                        <form action="{{ route('hackathons.destroy', $hackathon) }}" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este hackathon?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50" title="Excluir">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-slate-300 p-2 cursor-not-allowed" title="Não é possível excluir - há grupos inscritos">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -91,6 +127,71 @@
 @endsection
 
 @push('modals')
+    {{-- Modal de Finalização --}}
+    <div id="finalize-hackathon-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-data="{ loading: false }">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeFinalizeModal()"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    
+                    <div class="bg-gradient-to-br from-purple-500 to-indigo-600 px-6 py-5 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-trophy text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-white">Finalizar Hackathon</h3>
+                                <p id="finalize-hackathon-name" class="text-sm text-white/80"></p>
+                            </div>
+                        </div>
+                        <button onclick="closeFinalizeModal()" class="text-white/70 hover:text-white">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <form id="finalize-form" method="POST" @submit="loading = true">
+                        @csrf
+                        <div class="px-6 py-6 space-y-6">
+                            
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                <div class="flex gap-3">
+                                    <i class="fas fa-exclamation-triangle text-amber-600 mt-0.5"></i>
+                                    <div class="text-sm text-amber-800">
+                                        <p class="font-medium">Atenção!</p>
+                                        <p class="mt-1">Esta ação é irreversível. Ao finalizar o hackathon:</p>
+                                        <ul class="list-disc ml-4 mt-2 space-y-1">
+                                            <li>O grupo vencedor receberá <strong>1000 XP</strong></li>
+                                            <li>Os demais participantes receberão <strong>200 XP</strong></li>
+                                            <li>Todos serão notificados do resultado</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Selecione o Grupo Vencedor</label>
+                                <select name="winner_group_id" id="finalize-grupos-select" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-principal focus:ring focus:ring-principal/20">
+                                    <option value="">Escolha um grupo...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-100">
+                            <button type="button" onclick="closeFinalizeModal()" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                                Cancelar
+                            </button>
+                            <button type="submit" :disabled="loading" class="px-5 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 font-medium flex items-center gap-2 disabled:opacity-50">
+                                <i class="fas fa-trophy" x-show="!loading"></i>
+                                <i class="fas fa-spinner fa-spin" x-show="loading"></i>
+                                <span x-text="loading ? 'Finalizando...' : 'Encerrar e Premiar'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Modal de Edição --}}
     <div id="edit-hackathon-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeEditModal()"></div>
@@ -164,6 +265,35 @@
 
 @push('scripts')
     <script>
+        // Funções do Modal de Finalização
+        function openFinalizeModal(hackathonId, hackathonNome, grupos) {
+            const modal = document.getElementById('finalize-hackathon-modal');
+            const form = document.getElementById('finalize-form');
+            const select = document.getElementById('finalize-grupos-select');
+            
+            // Configurar form action
+            form.action = `/dashboard/professor/hackathons/${hackathonId}/finalize`;
+            
+            // Mostrar nome do hackathon
+            document.getElementById('finalize-hackathon-name').textContent = hackathonNome;
+            
+            // Popular select com grupos
+            select.innerHTML = '<option value="">Escolha um grupo...</option>';
+            grupos.forEach(grupo => {
+                const option = document.createElement('option');
+                option.value = grupo.id;
+                option.textContent = grupo.nome;
+                select.appendChild(option);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeFinalizeModal() {
+            document.getElementById('finalize-hackathon-modal').classList.add('hidden');
+        }
+
+        // Funções do Modal de Edição
         function openEditModal(hackathon) {
             const modal = document.getElementById('edit-hackathon-modal');
             const form = document.getElementById('edit-form');

@@ -300,8 +300,7 @@ function notificationBell() {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
                     body: JSON.stringify({
-                        id: notification.id,
-                        type: notification.type
+                        id: notification.id
                     })
                 });
                 const data = await response.json();

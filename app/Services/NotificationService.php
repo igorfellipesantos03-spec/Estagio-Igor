@@ -2,14 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Announcement;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 class NotificationService
 {
     /**
-     * Obter todas as notificações do usuário (pessoais + anúncios globais)
+     * Obter todas as notificações do usuário
      * 
      * @param User $user
      * @param bool $unreadOnly
@@ -18,31 +17,7 @@ class NotificationService
      */
     public function getUserNotifications(User $user, bool $unreadOnly = false, int $limit = 20): Collection
     {
-        // Buscar notificações pessoais (do banco notifications)
-        $personalNotifications = $this->getPersonalNotifications($user, $unreadOnly, $limit);
-
-        // Buscar anúncios globais não lidos
-        $announcements = $this->getAnnouncements($user, $unreadOnly, $limit);
-
-        // Mesclar e ordenar por data
-        $merged = $personalNotifications->concat($announcements)
-            ->sortByDesc('created_at')
-            ->take($limit)
-            ->values();
-
-        return $merged;
-    }
-
-    /**
-     * Buscar notificações pessoais do usuário
-     */
-    private function getPersonalNotifications(User $user, bool $unreadOnly, int $limit): Collection
-    {
-        $query = $user->notifications();
-
-        if ($unreadOnly) {
-            $query = $user->unreadNotifications();
-        }
+        $query = $unreadOnly ? $user->unreadNotifications() : $user->notifications();
 
         return $query->take($limit)->get()->map(function ($notification) {
             $data = $notification->data;
@@ -64,61 +39,23 @@ class NotificationService
     }
 
     /**
-     * Buscar anúncios globais
-     */
-    private function getAnnouncements(User $user, bool $unreadOnly, int $limit): Collection
-    {
-        $query = Announcement::active()->latest();
-
-        if ($unreadOnly) {
-            $query->unreadBy($user);
-        }
-
-        return $query->take($limit)->get()->map(function ($announcement) use ($user) {
-            return (object) [
-                'id' => $announcement->id,
-                'type' => 'announcement',
-                'title' => $announcement->title,
-                'message' => $announcement->body,
-                'category' => $announcement->category,
-                'level' => $announcement->type,
-                'icon' => $announcement->icon,
-                'action_url' => $announcement->action_url,
-                'is_read' => $announcement->isReadBy($user),
-                'is_urgent' => false,
-                'created_at' => $announcement->created_at,
-            ];
-        });
-    }
-
-    /**
      * Contar notificações não lidas
      */
     public function getUnreadCount(User $user): int
     {
-        $personalCount = $user->unreadNotifications()->count();
-        $announcementCount = Announcement::active()->unreadBy($user)->count();
-
-        return $personalCount + $announcementCount;
+        return $user->unreadNotifications()->count();
     }
 
     /**
      * Marcar notificação como lida
      */
-    public function markAsRead(User $user, string $id, string $type): bool
+    public function markAsRead(User $user, string $id): bool
     {
-        if ($type === 'announcement') {
-            $announcement = Announcement::find($id);
-            if ($announcement) {
-                $announcement->markAsReadBy($user);
-                return true;
-            }
-        } else {
-            $notification = $user->notifications()->where('id', $id)->first();
-            if ($notification) {
-                $notification->markAsRead();
-                return true;
-            }
+        $notification = $user->notifications()->where('id', $id)->first();
+        
+        if ($notification) {
+            $notification->markAsRead();
+            return true;
         }
 
         return false;
@@ -129,14 +66,7 @@ class NotificationService
      */
     public function markAllAsRead(User $user): void
     {
-        // Marcar notificações pessoais
         $user->unreadNotifications()->update(['read_at' => now()]);
-
-        // Marcar anúncios globais
-        $unreadAnnouncements = Announcement::active()->unreadBy($user)->get();
-        foreach ($unreadAnnouncements as $announcement) {
-            $announcement->markAsReadBy($user);
-        }
     }
 
     /**

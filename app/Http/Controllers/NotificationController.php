@@ -33,15 +33,10 @@ class NotificationController extends Controller
     {
         $request->validate([
             'id' => 'required|string',
-            'type' => 'required|in:notification,announcement',
         ]);
 
         $user = Auth::user();
-        $success = $this->notificationService->markAsRead(
-            $user,
-            $request->id,
-            $request->type
-        );
+        $success = $this->notificationService->markAsRead($user, $request->id);
 
         if ($success) {
             return response()->json([
