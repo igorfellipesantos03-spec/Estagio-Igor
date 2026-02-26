@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - main
       - '*.x'
   pull_request:
   schedule:
@@ -19,7 +20,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: [8.2, 8.3, 8.4]
+        php: [8.2, 8.3] # Removi o 8.4 para ser mais rápido, mas pode manter se preferir
 
     name: PHP ${{ matrix.php }}
 
@@ -36,6 +37,19 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
+
+      # --- ADICIONADO: Configuração do Node e Build do Vite ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Build assets (Vite)
+        run: npm run build
+      # -------------------------------------------------------
 
       - name: Copy environment file
         run: cp .env.example .env
