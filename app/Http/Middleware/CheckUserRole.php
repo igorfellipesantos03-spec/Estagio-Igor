@@ -15,7 +15,8 @@ class CheckUserRole
     public function handle(Request $request, Closure $next, string $role): Response
     {
         // Valida autenticação e papel do usuário
-        if (! Auth::check() || Auth::user()->tipo !== $role) {
+        // Administradores têm acesso livre a todas as rotas protegidas
+        if (! Auth::check() || (Auth::user()->tipo !== $role && Auth::user()->tipo !== 'adm')) {
             // Acesso negado
             return redirect()->route('login')->with('error', 'Acesso negado. Você não tem permissão para acessar esta página.');
         }

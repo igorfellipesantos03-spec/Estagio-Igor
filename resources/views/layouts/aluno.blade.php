@@ -76,6 +76,9 @@
 
 <body class="bg-gray-50 text-slate-800 font-sans h-screen flex overflow-hidden" x-data="{ sidebarOpen: false }">
 
+    {{-- Toast Global --}}
+    <x-toast />
+
     {{-- Overlay Mobile --}}
     <div 
         x-show="sidebarOpen" 

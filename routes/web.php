@@ -83,6 +83,10 @@ Route::middleware(['auth', 'role:professor'])
         Route::get('/grupos', [GrupoController::class, 'professorIndex'])->name('professor.grupos.index');
         Route::delete('/grupos/{grupo}', [GrupoController::class, 'professorDestroy'])->name('professor.grupos.destroy');
         Route::delete('/grupos/{grupo}/imagem', [GrupoController::class, 'professorRemoveImage'])->name('professor.grupos.removeImage');
+
+        // Rotas de Relatórios (Professor)
+        Route::get('/relatorios', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/relatorios/exportar', [\App\Http\Controllers\ReportController::class, 'export'])->name('reports.export');
     });
 
 

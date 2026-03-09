@@ -1,4 +1,4 @@
-@extends(auth()->user()->role === 'professor' ? 'layouts.professor' : 'layouts.aluno')
+@extends(auth()->user()->tipo === 'professor' || auth()->user()->tipo === 'adm' ? 'layouts.professor' : 'layouts.aluno')
 
 @section('title', 'Meu Perfil - SimplifiKathon')
 @section('header', 'Meu Perfil')
@@ -22,7 +22,7 @@
                 <h2 class="text-3xl font-bold text-slate-800">{{ $user->name }}</h2>
                 <div class="flex flex-wrap items-center gap-3 mt-2">
                     <span class="px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary uppercase tracking-wider">
-                        {{ $user->role === 'professor' ? 'Professor' : 'Aluno' }}
+                        {{ ucfirst($user->tipo) }}
                     </span>
                     <span class="text-slate-500 text-sm flex items-center gap-1">
                         <i class="fas fa-envelope text-slate-400"></i> {{ $user->email }}
@@ -30,6 +30,11 @@
                     <span class="text-slate-500 text-sm flex items-center gap-1">
                         <i class="fas fa-calendar-alt text-slate-400"></i> Membro desde {{ $user->created_at->format('M Y') }}
                     </span>
+                    @if($user->tipo === 'aluno' && $user->matricula)
+                    <span class="text-slate-500 text-sm flex items-center gap-1">
+                        <i class="fas fa-id-card text-slate-400"></i> Matrícula: <strong>{{ $user->matricula }}</strong>
+                    </span>
+                    @endif
                 </div>
             </div>
         </div>

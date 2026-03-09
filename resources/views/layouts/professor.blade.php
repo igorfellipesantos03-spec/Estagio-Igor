@@ -73,6 +73,9 @@
 
 <body class="bg-gray-50 text-slate-800 font-sans h-screen flex overflow-hidden" x-data="{ sidebarOpen: false }">
 
+    {{-- Toast Global --}}
+    <x-toast />
+
     {{-- Overlay Mobile --}}
     <div 
         x-show="sidebarOpen" 
@@ -165,6 +168,12 @@
                     <span>Gerenciar Grupos</span>
                 </a>
                 
+                <a href="{{ route('reports.index') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl {{ request()->routeIs('reports.*') ? 'bg-sidebar-hover text-white border-l-4 border-primary' : 'text-slate-300 hover:bg-sidebar-hover hover:text-white border-l-4 border-transparent hover:border-primary' }} transition-all group">
+                    <svg class="w-5 h-5 mr-3 {{ request()->routeIs('reports.*') ? 'text-primary' : 'group-hover:text-primary' }} transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Relatórios</span>
+                </a>
                 <a href="{{ route('profile.edit') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl {{ request()->routeIs('profile.*') ? 'bg-sidebar-hover text-white border-l-4 border-primary' : 'text-slate-300 hover:bg-sidebar-hover hover:text-white border-l-4 border-transparent hover:border-primary' }} transition-all group mt-2">
                     <svg class="w-5 h-5 mr-3 {{ request()->routeIs('profile.*') ? 'text-primary' : 'group-hover:text-primary' }} transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -202,6 +211,14 @@
             <h1 class="text-2xl font-bold text-slate-800 tracking-tight">@yield('header', 'Painel do Professor')</h1>
             
             <div class="flex items-center gap-4">
+                @if(auth()->user()->tipo === 'adm')
+                <a href="{{ route('users.index') }}" class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                    </svg>
+                    Voltar para Admin
+                </a>
+                @endif
                 <button class="p-2 text-gray-400 hover:text-primary transition-colors relative">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -215,35 +232,6 @@
         <div class="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
             <div class="max-w-7xl mx-auto space-y-8">
                 
-                {{-- Alertas --}}
-                @if (session('success'))
-                    <div class="flex items-center p-4 mb-6 text-sm text-green-800 border border-green-200 rounded-xl bg-green-50 animate-fade-in-down" role="alert">
-                        <svg class="w-5 h-5 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                            <span class="font-bold block">Sucesso!</span>
-                            {{ session('success') }}
-                        </div>
-                    </div>
-                @endif
-
-                @if ($errors->any())
-                    <div class="flex p-4 mb-6 text-sm text-red-800 border border-red-200 rounded-xl bg-red-50 animate-fade-in-down" role="alert">
-                        <svg class="w-5 h-5 mr-3 mt-0.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                            <span class="font-bold block mb-1">Por favor, corrija os seguintes erros:</span>
-                            <ul class="list-disc list-inside space-y-1">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-                @endif
-
                 @yield('content')
 
             </div>

@@ -40,7 +40,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'tipo' => 'required|in:aluno,professor,adm',
-            'matricula' => 'nullable|string|unique:users',
+            'matricula' => 'required_if:tipo,aluno|nullable|string|unique:users,matricula',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
@@ -68,7 +68,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'tipo' => 'required|in:aluno,professor,adm',
-            'matricula' => 'nullable|string|unique:users,matricula,' . $user->id,
+            'matricula' => 'required_if:tipo,aluno|nullable|string|unique:users,matricula,' . $user->id,
             'password' => 'nullable|string|min:6|confirmed',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -98,6 +98,6 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
-        return redirect()->route('users.index')->with('success', 'Usuário excluído com sucesso!');
+        return redirect()->route('users.index')->with('success', 'Utilizador bloqueado com sucesso!');
     }
 }

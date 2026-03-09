@@ -5,99 +5,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login</title>
+    <title>Login | SimplifiKathon</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#F08223',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                            DEFAULT: '#F08223',
+                        },
+                        secondary: {
+                            800: '#1e293b',
+                            900: '#13294B',
+                            DEFAULT: '#13294B',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
     <style>
         body {
-            background: url('/img/img_fundo.webp') no-repeat center center fixed;
-            background-size: cover;
+            font-family: 'Inter', sans-serif;
         }
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen font-sans text-gray-800">
-    <div id="app" class="bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
-        <h2 class="text-3xl font-bold text-center text-gray-900 mb-6">Login</h2>
+<body class="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat bg-fixed"
+      style="background-image: url('/img/img_fundo.webp');">
 
-        @if (session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4">
-            <p>{{ session('error') }}</p>
+    {{-- Toast Notifications --}}
+    <x-toast />
+
+    {{-- Overlay --}}
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+
+    {{-- Login Card --}}
+    <div class="relative z-10 w-full max-w-md mx-4">
+        <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+
+            {{-- Header with Logo --}}
+            <div class="bg-gradient-to-br from-secondary-900 to-slate-800 px-8 py-8 text-center">
+                <img src="{{ asset('image/Simplifi(K)athon.png') }}"
+                     alt="SimplifiKathon"
+                     class="h-12 mx-auto mb-3">
+                <p class="text-gray-300 text-sm font-medium tracking-wide">Acesse a sua conta</p>
+            </div>
+
+            {{-- Form --}}
+            <div class="px-8 py-8">
+                <form method="POST" action="{{ route('login') }}" class="space-y-5">
+                    @csrf
+
+                    {{-- Email --}}
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                            Email
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <input type="email"
+                                   name="email"
+                                   id="email"
+                                   value="{{ old('email') }}"
+                                   required
+                                   autocomplete="email"
+                                   placeholder="seu@email.com"
+                                   class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all duration-200">
+                        </div>
+                    </div>
+
+                    {{-- Password --}}
+                    <div>
+                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                            Senha
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                            </div>
+                            <input type="password"
+                                   name="password"
+                                   id="password"
+                                   required
+                                   autocomplete="current-password"
+                                   placeholder="••••••••"
+                                   class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all duration-200">
+                        </div>
+                    </div>
+
+                    {{-- Submit Button --}}
+                    <button type="submit"
+                            class="w-full py-3 px-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0">
+                        Entrar
+                    </button>
+                </form>
+
+                {{-- Register Link --}}
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-500">
+                        Não tem conta?
+                        <a href="{{ route('register') }}"
+                           class="font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200">
+                            Cadastre-se
+                        </a>
+                    </p>
+                </div>
+            </div>
         </div>
-        @endif
 
-        @if ($errors->any())
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4">
-            @foreach ($errors->all() as $error)
-            <p class="text-sm">{{ $error }}</p>
-            @endforeach
-        </div>
-        @endif
-
-        <form method="POST" action="{{ route('login') }}" class="space-y-4">
-            @csrf
-            <input type="hidden" name="_token" :value="csrf">
-
-            <div>
-                <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo:</label>
-                <select name="tipo" id="tipo" v-model="tipo" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="aluno">Aluno</option>
-                    <option value="professor">Professor</option>
-                    <option value="adm">Administrador</option>
-                </select>
-            </div>
-
-            <div v-if="tipo === 'aluno' || tipo === 'professor'">
-                <label for="email" class="block text-sm font-medium text-gray-700">Email:</label>
-                <input type="email" name="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-
-            <div v-if="tipo === 'adm'">
-                <label for="name" class="block text-sm font-medium text-gray-700">Nome:</label>
-                <input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Senha:</label>
-                <input type="password" name="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-
-            <div v-if="tipo === 'aluno'">
-                <label for="matricula" class="block text-sm font-medium text-gray-700">Matrícula:</label>
-                <input type="text" name="matricula" id="matricula" v-model="matricula" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-
-            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-300">
-                Entrar
-            </button>
-        </form>
-
-        <p class="mt-4 text-center text-sm">
-            Não tem conta? <a href="{{ route('register') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">Cadastre-se</a>
+        {{-- Footer --}}
+        <p class="text-center text-xs text-white/60 mt-6">
+            &copy; {{ date('Y') }} SimplifiKathon — Gestão de Hackathons
         </p>
     </div>
 
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script>
-        const {
-            createApp,
-            ref
-        } = Vue;
-
-        createApp({
-            setup() {
-                const tipo = ref('aluno');
-                const matricula = ref('');
-                const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-                return {
-                    tipo,
-                    matricula,
-                    csrf
-                };
-            }
-        }).mount('#app');
-    </script>
 </body>
 
 </html>
